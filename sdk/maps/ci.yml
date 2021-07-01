@@ -31,5 +31,7 @@ extends:
   parameters:
     ServiceDirectory: maps-mobility
     Artifacts:
-    - name: azure-mgmt-maps-mobility
-      safeName: azuremgmtmaps-mobility
+    - name: azure-mgmt-maps
+      safeName: azuremgmtmaps
+    - name: azure-maps-service
+      safeName: azuremapsservice
