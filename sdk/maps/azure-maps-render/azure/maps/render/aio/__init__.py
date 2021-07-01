@@ -6,5 +6,5 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_render_client import MapsRenderClient
-__all__ = ['MapsRenderClient']
+from ._render_client import RenderClient
+__all__ = ['RenderClient']

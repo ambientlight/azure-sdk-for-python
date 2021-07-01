@@ -11,7 +11,7 @@ from typing import Any, List, Optional, Union
 from azure.core.exceptions import HttpResponseError
 import msrest.serialization
 
-from ._maps_search_client_enums import *
+from ._search_client_enums import *
 
 
 class BatchItem(msrest.serialization.Model):

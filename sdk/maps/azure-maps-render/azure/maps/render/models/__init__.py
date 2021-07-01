@@ -27,7 +27,7 @@ except (SyntaxError, ImportError):
     from ._models import RegionCopyrights  # type: ignore
     from ._models import RegionCopyrightsCountry  # type: ignore
 
-from ._maps_render_client_enums import (
+from ._render_client_enums import (
     GeographicResourceLocation,
     Geography,
     IncludeText,

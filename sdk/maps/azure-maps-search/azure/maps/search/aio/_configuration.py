@@ -18,8 +18,8 @@ if TYPE_CHECKING:
     from azure.core.credentials_async import AsyncTokenCredential
 
 
-class MapsSearchClientConfiguration(Configuration):
-    """Configuration for MapsSearchClient.
+class SearchClientConfiguration(Configuration):
+    """Configuration for SearchClient.
 
     Note that all parameters used to create this instance are saved as instance
     attributes.
@@ -43,7 +43,7 @@ class MapsSearchClientConfiguration(Configuration):
             raise ValueError("Parameter 'credential' must not be None.")
         if geography is None:
             raise ValueError("Parameter 'geography' must not be None.")
-        super(MapsSearchClientConfiguration, self).__init__(**kwargs)
+        super(SearchClientConfiguration, self).__init__(**kwargs)
 
         self.credential = credential
         self.x_ms_client_id = x_ms_client_id

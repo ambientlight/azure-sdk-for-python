@@ -18,8 +18,8 @@ if TYPE_CHECKING:
     from azure.core.credentials_async import AsyncTokenCredential
 
 
-class MapsWeatherClientConfiguration(Configuration):
-    """Configuration for MapsWeatherClient.
+class WeatherClientConfiguration(Configuration):
+    """Configuration for WeatherClient.
 
     Note that all parameters used to create this instance are saved as instance
     attributes.
@@ -43,7 +43,7 @@ class MapsWeatherClientConfiguration(Configuration):
             raise ValueError("Parameter 'credential' must not be None.")
         if geography is None:
             raise ValueError("Parameter 'geography' must not be None.")
-        super(MapsWeatherClientConfiguration, self).__init__(**kwargs)
+        super(WeatherClientConfiguration, self).__init__(**kwargs)
 
         self.credential = credential
         self.x_ms_client_id = x_ms_client_id

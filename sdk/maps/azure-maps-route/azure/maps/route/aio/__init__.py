@@ -6,5 +6,5 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_route_client import MapsRouteClient
-__all__ = ['MapsRouteClient']
+from ._route_client import RouteClient
+__all__ = ['RouteClient']

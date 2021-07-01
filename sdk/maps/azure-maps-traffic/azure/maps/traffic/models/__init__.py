@@ -41,7 +41,7 @@ except (SyntaxError, ImportError):
     from ._models import TrafficIncidentViewportResultViewpResp  # type: ignore
     from ._models import TrafficIncidentViewportResultViewpRespTrafficState  # type: ignore
 
-from ._maps_traffic_client_enums import (
+from ._traffic_client_enums import (
     GeographicResourceLocation,
     Geography,
     IncidentGeometryType,

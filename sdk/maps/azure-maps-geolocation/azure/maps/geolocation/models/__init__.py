@@ -19,7 +19,7 @@ except (SyntaxError, ImportError):
     from ._models import ErrorResponse  # type: ignore
     from ._models import IpAddressToLocationResult  # type: ignore
 
-from ._maps_geolocation_client_enums import (
+from ._geolocation_client_enums import (
     GeographicResourceLocation,
     Geography,
     ResponseFormat,

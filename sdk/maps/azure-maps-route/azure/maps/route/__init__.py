@@ -6,11 +6,11 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_route_client import MapsRouteClient
+from ._route_client import RouteClient
 from ._version import VERSION
 
 __version__ = VERSION
-__all__ = ['MapsRouteClient']
+__all__ = ['RouteClient']
 
 try:
     from ._patch import patch_sdk  # type: ignore

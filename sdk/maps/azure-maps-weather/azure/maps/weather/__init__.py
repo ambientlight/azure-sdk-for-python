@@ -6,11 +6,11 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_weather_client import MapsWeatherClient
+from ._weather_client import WeatherClient
 from ._version import VERSION
 
 __version__ = VERSION
-__all__ = ['MapsWeatherClient']
+__all__ = ['WeatherClient']
 
 try:
     from ._patch import patch_sdk  # type: ignore

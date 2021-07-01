@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from azure.core.credentials import TokenCredential
 
 
-class MapsGeolocationClientConfiguration(Configuration):
-    """Configuration for MapsGeolocationClient.
+class GeolocationClientConfiguration(Configuration):
+    """Configuration for GeolocationClient.
 
     Note that all parameters used to create this instance are saved as instance
     attributes.
@@ -46,7 +46,7 @@ class MapsGeolocationClientConfiguration(Configuration):
             raise ValueError("Parameter 'credential' must not be None.")
         if geography is None:
             raise ValueError("Parameter 'geography' must not be None.")
-        super(MapsGeolocationClientConfiguration, self).__init__(**kwargs)
+        super(GeolocationClientConfiguration, self).__init__(**kwargs)
 
         self.credential = credential
         self.x_ms_client_id = x_ms_client_id

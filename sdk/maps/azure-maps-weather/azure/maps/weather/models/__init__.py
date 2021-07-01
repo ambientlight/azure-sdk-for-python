@@ -103,7 +103,7 @@ except (SyntaxError, ImportError):
     from ._models import WindDirection  # type: ignore
     from ._models import WindSpeed  # type: ignore
 
-from ._maps_weather_client_enums import (
+from ._weather_client_enums import (
     DayQuarter,
     GeographicResourceLocation,
     Geography,

@@ -2668,8 +2668,8 @@ class SearchOperations(object):
         search_fuzzy_batch_request_body,  # type: "_models.BatchRequestBody"
         **kwargs  # type: Any
     ):
-        # type: (...) -> None
-        cls = kwargs.pop('cls', None)  # type: ClsType[None]
+        # type: (...) -> Optional["_models.SearchFuzzyBatchResponse"]
+        cls = kwargs.pop('cls', None)  # type: ClsType[Optional["_models.SearchFuzzyBatchResponse"]]
         error_map = {
             401: ClientAuthenticationError, 404: ResourceNotFoundError, 409: ResourceExistsError
         }
@@ -2704,17 +2704,23 @@ class SearchOperations(object):
         pipeline_response = self._client._pipeline.run(request, stream=False, **kwargs)
         response = pipeline_response.http_response
 
-        if response.status_code not in [202]:
+        if response.status_code not in [200, 202]:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
+        deserialized = None
+        if response.status_code == 200:
+            deserialized = self._deserialize('SearchFuzzyBatchResponse', pipeline_response)
+
+        if response.status_code == 202:
+            response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
 
         if cls:
-            return cls(pipeline_response, None, response_headers)
+            return cls(pipeline_response, deserialized, response_headers)
 
+        return deserialized
     _post_search_fuzzy_batch_initial.metadata = {'url': '/search/fuzzy/batch/{format}'}  # type: ignore
 
     def begin_post_search_fuzzy_batch(
@@ -2723,7 +2729,7 @@ class SearchOperations(object):
         search_fuzzy_batch_request_body,  # type: "_models.BatchRequestBody"
         **kwargs  # type: Any
     ):
-        # type: (...) -> LROPoller[None]
+        # type: (...) -> LROPoller["_models.SearchFuzzyBatchResponse"]
         """**Search Fuzzy Batch API**
 
         **Applies to**\ : S1 pricing tier.
@@ -2952,12 +2958,12 @@ class SearchOperations(object):
          Pass in False for this operation to not poll, or pass in your own initialized polling object for a personal polling strategy.
         :paramtype polling: bool or ~azure.core.polling.PollingMethod
         :keyword int polling_interval: Default waiting time between two polls for LRO operations if no Retry-After header is present.
-        :return: An instance of LROPoller that returns either None or the result of cls(response)
-        :rtype: ~azure.core.polling.LROPoller[None]
+        :return: An instance of LROPoller that returns either SearchFuzzyBatchResponse or the result of cls(response)
+        :rtype: ~azure.core.polling.LROPoller[~azure.maps.search.models.SearchFuzzyBatchResponse]
         :raises ~azure.core.exceptions.HttpResponseError:
         """
         polling = kwargs.pop('polling', True)  # type: Union[bool, PollingMethod]
-        cls = kwargs.pop('cls', None)  # type: ClsType[None]
+        cls = kwargs.pop('cls', None)  # type: ClsType["_models.SearchFuzzyBatchResponse"]
         lro_delay = kwargs.pop(
             'polling_interval',
             self._config.polling_interval
@@ -2975,8 +2981,11 @@ class SearchOperations(object):
         kwargs.pop('content_type', None)
 
         def get_long_running_output(pipeline_response):
+            deserialized = self._deserialize('SearchFuzzyBatchResponse', pipeline_response)
+
             if cls:
-                return cls(pipeline_response, None, {})
+                return cls(pipeline_response, deserialized, {})
+            return deserialized
 
         path_format_arguments = {
             'geography': self._serialize.url("self._config.geography", self._config.geography, 'str'),
@@ -3038,12 +3047,16 @@ class SearchOperations(object):
             error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
             raise HttpResponseError(response=response, model=error)
 
+        response_headers = {}
         deserialized = None
         if response.status_code == 200:
             deserialized = self._deserialize('SearchFuzzyBatchResponse', pipeline_response)
 
+        if response.status_code == 202:
+            response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
+
         if cls:
-            return cls(pipeline_response, deserialized, {})
+            return cls(pipeline_response, deserialized, response_headers)
 
         return deserialized
     _get_search_fuzzy_batch_initial.metadata = {'url': '/search/fuzzy/batch/{format}'}  # type: ignore
@@ -3326,14 +3339,294 @@ class SearchOperations(object):
             return LROPoller(self._client, raw_result, get_long_running_output, polling_method)
     begin_get_search_fuzzy_batch.metadata = {'url': '/search/fuzzy/batch/{format}'}  # type: ignore
 
+    def post_search_address_batch_sync(
+        self,
+        format,  # type: Union[str, "_models.ResponseFormat"]
+        search_address_batch_request_body,  # type: "_models.BatchRequestBody"
+        **kwargs  # type: Any
+    ):
+        # type: (...) -> "_models.SearchAddressBatchResponse"
+        """**Search Address Batch API**
+
+        **Applies to**\ : S1 pricing tier.
+
+        The Search Address Batch API sends batches of queries to `Search Address API
+        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddress>`_ using just a single
+        API call. You can call Search Address Batch API to run either asynchronously (async) or
+        synchronously (sync). The async API allows caller to batch up to **10,000** queries and sync
+        API up to **100** queries.
+
+        Submit Synchronous Batch Request
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        The Synchronous API is recommended for lightweight batch requests. When the service receives a
+        request, it will respond as soon as the batch items are calculated and there will be no
+        possibility to retrieve the results later. The Synchronous API will return a timeout error (a
+        408 response) if the request takes longer than 60 seconds. The number of batch items is limited
+        to **100** for this API.
+
+        .. code-block::
+
+           POST
+        https://atlas.microsoft.com/search/address/batch/sync/json?api-version=1.0&subscription-key={subscription-key}
+
+        Submit Asynchronous Batch Request
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        The Asynchronous API is appropriate for processing big volumes of relatively complex search
+        requests
+
+
+        * It allows the retrieval of results in a separate call (multiple downloads are possible).
+        * The asynchronous API is optimized for reliability and is not expected to run into a timeout.
+        * The number of batch items is limited to **10,000** for this API.
+
+        When you make a request by using async request, by default the service returns a 202 response
+        code along a redirect URL in the Location field of the response header. This URL should be
+        checked periodically until the response data or error information is available.
+        The asynchronous responses are stored for **14** days. The redirect URL returns a 404 response
+        if used after the expiration period.
+
+        Please note that asynchronous batch request is a long-running request. Here's a typical
+        sequence of operations:
+
+
+        #. Client sends a Search Address Batch ``POST`` request to Azure Maps
+        #.
+           The server will respond with one of the following:
+
+           ..
+
+              HTTP ``202 Accepted`` - Batch request has been accepted.
+
+              HTTP ``Error`` - There was an error processing your Batch request. This could either be a
+        ``400 Bad Request`` or any other ``Error`` status code.
+
+
+        #.
+           If the batch request was accepted successfully, the ``Location`` header in the response
+        contains the URL to download the results of the batch request.
+            This status URI looks like following:
+
+        .. code-block::
+
+               GET
+        https://atlas.microsoft.com/batch/{batch-id}?api-version=1.0&subscription-key={subscription-key}
+
+
+        #. Client issues a ``GET`` request on the *download URL* obtained in Step 3 to download the
+        batch results.
+
+        POST Body for Batch Request
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        To send the *search address* queries you will use a ``POST`` request where the request body
+        will contain the ``batchItems`` array in ``json`` format and the ``Content-Type`` header will
+        be set to ``application/json``. Here's a sample request body containing 5 *search address*
+        queries:
+
+        .. code-block:: json
+
+           {
+               "batchItems": [
+                   {"query": "?query=400 Broad St, Seattle, WA 98109&limit=3"},
+                   {"query": "?query=One, Microsoft Way, Redmond, WA 98052&limit=3"},
+                   {"query": "?query=350 5th Ave, New York, NY 10118&limit=1"},
+                   {"query": "?query=Pike Pl, Seattle, WA
+        98101&lat=47.610970&lon=-122.342469&radius=1000"},
+                   {"query": "?query=Champ de Mars, 5 Avenue Anatole France, 75007 Paris,
+        France&limit=1"}
+               ]
+           }
+
+        A *search address* query in a batch is just a partial URL *without* the protocol, base URL,
+        path, api-version and subscription-key. It can accept any of the supported *search address*
+        `URI parameters
+        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddress#uri-parameters>`_. The
+        string values in the *search address* query must be properly escaped (e.g. " character should
+        be escaped with ) and it should also be properly URL-encoded.
+
+        The async API allows caller to batch up to **10,000** queries and sync API up to **100**
+        queries, and the batch should contain at least **1** query.
+
+        Download Asynchronous Batch Results
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        To download the async batch results you will issue a ``GET`` request to the batch download
+        endpoint. This *download URL* can be obtained from the ``Location`` header of a successful
+        ``POST`` batch request and looks like the following:
+
+        .. code-block::
+
+        https://atlas.microsoft.com/batch/{batch-id}?api-version=1.0&subscription-key={subscription-key}
+
+        Here's the typical sequence of operations for downloading the batch results:
+
+
+        #. Client sends a ``GET`` request using the *download URL*.
+        #.
+           The server will respond with one of the following:
+
+           ..
+
+              HTTP ``202 Accepted`` - Batch request was accepted but is still being processed. Please
+        try again in some time.
+
+              HTTP ``200 OK`` - Batch request successfully processed. The response body contains all
+        the batch results.
+
+
+        Batch Response Model
+        ^^^^^^^^^^^^^^^^^^^^
+
+        The returned data content is similar for async and sync requests. When downloading the results
+        of an async batch request, if the batch has finished processing, the response body contains the
+        batch response. This batch response contains a ``summary`` component that indicates the
+        ``totalRequests`` that were part of the original batch request and ``successfulRequests``\ i.e.
+        queries which were executed successfully. The batch response also includes a ``batchItems``
+        array which contains a response for each and every query in the batch request. The
+        ``batchItems`` will contain the results in the exact same order the original queries were sent
+        in the batch request. Each item in ``batchItems`` contains ``statusCode`` and ``response``
+        fields. Each ``response`` in ``batchItems`` is of one of the following types:
+
+
+        *
+          `\ ``SearchCommonResponse``
+        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddress#SearchCommonResponse>`_
+        - If the query completed successfully.
+
+        *
+          ``Error`` - If the query failed. The response will contain a ``code`` and a ``message`` in
+        this case.
+
+        Here's a sample Batch Response with 2 *successful* and 1 *failed* result:
+
+        .. code-block:: json
+
+           {
+               "summary": {
+                   "successfulRequests": 2,
+                   "totalRequests": 3
+               },
+               "batchItems": [
+                   {
+                       "statusCode": 200,
+                       "response":
+                       {
+                           "summary": {
+                               "query": "one microsoft way redmond wa 98052"
+                           },
+                           "results": [
+                               {
+                                   "position": {
+                                       "lat": 47.63989,
+                                       "lon": -122.12509
+                                   }
+                               }
+                           ]
+                       }
+                   },
+                   {
+                       "statusCode": 200,
+                       "response":
+                       {
+                           "summary": {
+                               "query": "pike pl seattle wa 98101"
+                           },
+                           "results": [
+                               {
+                                   "position": {
+                                       "lat": 47.60963,
+                                       "lon": -122.34215
+                                   }
+                               }
+                           ]
+                       }
+                   },
+                   {
+                       "statusCode": 400,
+                       "response":
+                       {
+                           "error":
+                           {
+                               "code": "400 BadRequest",
+                               "message": "Bad request: one or more parameters were incorrectly
+        specified or are mutually exclusive."
+                           }
+                       }
+                   }
+               ]
+           }.
+
+        :param format: Desired format of the response. Only ``json`` format is supported.
+        :type format: str or ~azure.maps.search.models.ResponseFormat
+        :param search_address_batch_request_body: The list of address geocoding queries/requests to
+         process. The list can contain  a max of 10,000 queries and must contain at least 1 query.
+        :type search_address_batch_request_body: ~azure.maps.search.models.BatchRequestBody
+        :keyword callable cls: A custom type or function that will be passed the direct response
+        :return: SearchAddressBatchResponse, or the result of cls(response)
+        :rtype: ~azure.maps.search.models.SearchAddressBatchResponse
+        :raises: ~azure.core.exceptions.HttpResponseError
+        """
+        cls = kwargs.pop('cls', None)  # type: ClsType["_models.SearchAddressBatchResponse"]
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            408: lambda response: HttpResponseError(response=response, model=self._deserialize(_models.ErrorResponse, response)),
+        }
+        error_map.update(kwargs.pop('error_map', {}))
+        api_version = "1.0"
+        content_type = kwargs.pop("content_type", "application/json")
+        accept = "application/json"
+
+        # Construct URL
+        url = self.post_search_address_batch_sync.metadata['url']  # type: ignore
+        path_format_arguments = {
+            'geography': self._serialize.url("self._config.geography", self._config.geography, 'str'),
+            'format': self._serialize.url("format", format, 'str'),
+        }
+        url = self._client.format_url(url, **path_format_arguments)
+
+        # Construct parameters
+        query_parameters = {}  # type: Dict[str, Any]
+        query_parameters['api-version'] = self._serialize.query("api_version", api_version, 'str')
+
+        # Construct headers
+        header_parameters = {}  # type: Dict[str, Any]
+        if self._config.x_ms_client_id is not None:
+            header_parameters['x-ms-client-id'] = self._serialize.header("self._config.x_ms_client_id", self._config.x_ms_client_id, 'str')
+        header_parameters['Content-Type'] = self._serialize.header("content_type", content_type, 'str')
+        header_parameters['Accept'] = self._serialize.header("accept", accept, 'str')
+
+        body_content_kwargs = {}  # type: Dict[str, Any]
+        body_content = self._serialize.body(search_address_batch_request_body, 'BatchRequestBody')
+        body_content_kwargs['content'] = body_content
+        request = self._client.post(url, query_parameters, header_parameters, **body_content_kwargs)
+        pipeline_response = self._client._pipeline.run(request, stream=False, **kwargs)
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
+            raise HttpResponseError(response=response, model=error)
+
+        deserialized = self._deserialize('SearchAddressBatchResponse', pipeline_response)
+
+        if cls:
+            return cls(pipeline_response, deserialized, {})
+
+        return deserialized
+    post_search_address_batch_sync.metadata = {'url': '/search/address/batch/sync/{format}'}  # type: ignore
+
     def _post_search_address_batch_initial(
         self,
         format,  # type: Union[str, "_models.ResponseFormat"]
         search_address_batch_request_body,  # type: "_models.BatchRequestBody"
         **kwargs  # type: Any
     ):
-        # type: (...) -> None
-        cls = kwargs.pop('cls', None)  # type: ClsType[None]
+        # type: (...) -> Optional["_models.SearchAddressBatchResponse"]
+        cls = kwargs.pop('cls', None)  # type: ClsType[Optional["_models.SearchAddressBatchResponse"]]
         error_map = {
             401: ClientAuthenticationError, 404: ResourceNotFoundError, 409: ResourceExistsError
         }
@@ -3368,17 +3661,23 @@ class SearchOperations(object):
         pipeline_response = self._client._pipeline.run(request, stream=False, **kwargs)
         response = pipeline_response.http_response
 
-        if response.status_code not in [202]:
+        if response.status_code not in [200, 202]:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
+        deserialized = None
+        if response.status_code == 200:
+            deserialized = self._deserialize('SearchAddressBatchResponse', pipeline_response)
+
+        if response.status_code == 202:
+            response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
 
         if cls:
-            return cls(pipeline_response, None, response_headers)
+            return cls(pipeline_response, deserialized, response_headers)
 
+        return deserialized
     _post_search_address_batch_initial.metadata = {'url': '/search/address/batch/{format}'}  # type: ignore
 
     def begin_post_search_address_batch(
@@ -3387,7 +3686,7 @@ class SearchOperations(object):
         search_address_batch_request_body,  # type: "_models.BatchRequestBody"
         **kwargs  # type: Any
     ):
-        # type: (...) -> LROPoller[None]
+        # type: (...) -> LROPoller["_models.SearchAddressBatchResponse"]
         """**Search Address Batch API**
 
         **Applies to**\ : S1 pricing tier.
@@ -3611,12 +3910,12 @@ class SearchOperations(object):
          Pass in False for this operation to not poll, or pass in your own initialized polling object for a personal polling strategy.
         :paramtype polling: bool or ~azure.core.polling.PollingMethod
         :keyword int polling_interval: Default waiting time between two polls for LRO operations if no Retry-After header is present.
-        :return: An instance of LROPoller that returns either None or the result of cls(response)
-        :rtype: ~azure.core.polling.LROPoller[None]
+        :return: An instance of LROPoller that returns either SearchAddressBatchResponse or the result of cls(response)
+        :rtype: ~azure.core.polling.LROPoller[~azure.maps.search.models.SearchAddressBatchResponse]
         :raises ~azure.core.exceptions.HttpResponseError:
         """
         polling = kwargs.pop('polling', True)  # type: Union[bool, PollingMethod]
-        cls = kwargs.pop('cls', None)  # type: ClsType[None]
+        cls = kwargs.pop('cls', None)  # type: ClsType["_models.SearchAddressBatchResponse"]
         lro_delay = kwargs.pop(
             'polling_interval',
             self._config.polling_interval
@@ -3634,8 +3933,11 @@ class SearchOperations(object):
         kwargs.pop('content_type', None)
 
         def get_long_running_output(pipeline_response):
+            deserialized = self._deserialize('SearchAddressBatchResponse', pipeline_response)
+
             if cls:
-                return cls(pipeline_response, None, {})
+                return cls(pipeline_response, deserialized, {})
+            return deserialized
 
         path_format_arguments = {
             'geography': self._serialize.url("self._config.geography", self._config.geography, 'str'),
@@ -3984,22 +4286,22 @@ class SearchOperations(object):
             return LROPoller(self._client, raw_result, get_long_running_output, polling_method)
     begin_get_search_address_batch.metadata = {'url': '/search/address/batch/{format}'}  # type: ignore
 
-    def post_search_address_batch_sync(
+    def post_search_address_reverse_batch_sync(
         self,
         format,  # type: Union[str, "_models.ResponseFormat"]
-        search_address_batch_request_body,  # type: "_models.BatchRequestBody"
+        search_address_reverse_batch_request_body,  # type: "_models.BatchRequestBody"
         **kwargs  # type: Any
     ):
-        # type: (...) -> "_models.SearchAddressBatchResponse"
-        """**Search Address Batch API**
+        # type: (...) -> "_models.SearchAddressReverseBatchResponse"
+        """**Search Address Reverse Batch API**
 
         **Applies to**\ : S1 pricing tier.
 
-        The Search Address Batch API sends batches of queries to `Search Address API
-        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddress>`_ using just a single
-        API call. You can call Search Address Batch API to run either asynchronously (async) or
-        synchronously (sync). The async API allows caller to batch up to **10,000** queries and sync
-        API up to **100** queries.
+        The Search Address Batch API sends batches of queries to `Search Address Reverse API
+        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddressreverse>`_ using just a
+        single API call. You can call Search Address Reverse Batch API to run either asynchronously
+        (async) or synchronously (sync). The async API allows caller to batch up to **10,000** queries
+        and sync API up to **100** queries.
 
         Submit Synchronous Batch Request
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -4013,7 +4315,7 @@ class SearchOperations(object):
         .. code-block::
 
            POST
-        https://atlas.microsoft.com/search/address/batch/sync/json?api-version=1.0&subscription-key={subscription-key}
+        https://atlas.microsoft.com/search/address/reverse/batch/sync/json?api-version=1.0&subscription-key={subscription-key}
 
         Submit Asynchronous Batch Request
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -4065,31 +4367,29 @@ class SearchOperations(object):
         POST Body for Batch Request
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-        To send the *search address* queries you will use a ``POST`` request where the request body
-        will contain the ``batchItems`` array in ``json`` format and the ``Content-Type`` header will
-        be set to ``application/json``. Here's a sample request body containing 5 *search address*
-        queries:
+        To send the *search address reverse* queries you will use a ``POST`` request where the request
+        body will contain the ``batchItems`` array in ``json`` format and the ``Content-Type`` header
+        will be set to ``application/json``. Here's a sample request body containing 5 *search address
+        reverse* queries:
 
         .. code-block:: json
 
            {
                "batchItems": [
-                   {"query": "?query=400 Broad St, Seattle, WA 98109&limit=3"},
-                   {"query": "?query=One, Microsoft Way, Redmond, WA 98052&limit=3"},
-                   {"query": "?query=350 5th Ave, New York, NY 10118&limit=1"},
-                   {"query": "?query=Pike Pl, Seattle, WA
-        98101&lat=47.610970&lon=-122.342469&radius=1000"},
-                   {"query": "?query=Champ de Mars, 5 Avenue Anatole France, 75007 Paris,
-        France&limit=1"}
+                   {"query": "?query=48.858561,2.294911"},
+                   {"query": "?query=47.639765,-122.127896&radius=5000&limit=2"},
+                   {"query": "?query=47.621028,-122.348170"},
+                   {"query": "?query=43.722990,10.396695"},
+                   {"query": "?query=40.750958,-73.982336"}
                ]
            }
 
-        A *search address* query in a batch is just a partial URL *without* the protocol, base URL,
-        path, api-version and subscription-key. It can accept any of the supported *search address*
-        `URI parameters
-        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddress#uri-parameters>`_. The
-        string values in the *search address* query must be properly escaped (e.g. " character should
-        be escaped with ) and it should also be properly URL-encoded.
+        A *search address reverse* query in a batch is just a partial URL *without* the protocol, base
+        URL, path, api-version and subscription-key. It can accept any of the supported *search address
+        reverse* `URI parameters
+        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddressreverse#uri-parameters>`_.
+        The string values in the *search address reverse* query must be properly escaped (e.g. "
+        character should be escaped with ) and it should also be properly URL-encoded.
 
         The async API allows caller to batch up to **10,000** queries and sync API up to **100**
         queries, and the batch should contain at least **1** query.
@@ -4136,8 +4436,8 @@ class SearchOperations(object):
 
 
         *
-          `\ ``SearchCommonResponse``
-        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddress#SearchCommonResponse>`_
+          `\ ``SearchAddressReverseResponse``
+        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddressreverse#searchaddressreverseresponse>`_
         - If the query completed successfully.
 
         *
@@ -4159,14 +4459,15 @@ class SearchOperations(object):
                        "response":
                        {
                            "summary": {
-                               "query": "one microsoft way redmond wa 98052"
+                               "queryTime": 11
                            },
-                           "results": [
+                           "addresses": [
                                {
-                                   "position": {
-                                       "lat": 47.63989,
-                                       "lon": -122.12509
-                                   }
+                                   "address": {
+                                       "country": "France",
+                                       "freeformAddress": "Avenue Anatole France, 75007 Paris"
+                                   },
+                                   "position": "48.858490,2.294820"
                                }
                            ]
                        }
@@ -4176,14 +4477,15 @@ class SearchOperations(object):
                        "response":
                        {
                            "summary": {
-                               "query": "pike pl seattle wa 98101"
+                               "queryTime": 1
                            },
-                           "results": [
+                           "addresses": [
                                {
-                                   "position": {
-                                       "lat": 47.60963,
-                                       "lon": -122.34215
-                                   }
+                                   "address": {
+                                       "country": "United States of America",
+                                       "freeformAddress": "157th Pl NE, Redmond WA 98052"
+                                   },
+                                   "position": "47.640470,-122.129430"
                                }
                            ]
                        }
@@ -4205,15 +4507,16 @@ class SearchOperations(object):
 
         :param format: Desired format of the response. Only ``json`` format is supported.
         :type format: str or ~azure.maps.search.models.ResponseFormat
-        :param search_address_batch_request_body: The list of address geocoding queries/requests to
-         process. The list can contain  a max of 10,000 queries and must contain at least 1 query.
-        :type search_address_batch_request_body: ~azure.maps.search.models.BatchRequestBody
+        :param search_address_reverse_batch_request_body: The list of reverse geocoding
+         queries/requests to process. The list can contain  a max of 10,000 queries and must contain at
+         least 1 query.
+        :type search_address_reverse_batch_request_body: ~azure.maps.search.models.BatchRequestBody
         :keyword callable cls: A custom type or function that will be passed the direct response
-        :return: SearchAddressBatchResponse, or the result of cls(response)
-        :rtype: ~azure.maps.search.models.SearchAddressBatchResponse
+        :return: SearchAddressReverseBatchResponse, or the result of cls(response)
+        :rtype: ~azure.maps.search.models.SearchAddressReverseBatchResponse
         :raises: ~azure.core.exceptions.HttpResponseError
         """
-        cls = kwargs.pop('cls', None)  # type: ClsType["_models.SearchAddressBatchResponse"]
+        cls = kwargs.pop('cls', None)  # type: ClsType["_models.SearchAddressReverseBatchResponse"]
         error_map = {
             401: ClientAuthenticationError,
             404: ResourceNotFoundError,
@@ -4226,7 +4529,7 @@ class SearchOperations(object):
         accept = "application/json"
 
         # Construct URL
-        url = self.post_search_address_batch_sync.metadata['url']  # type: ignore
+        url = self.post_search_address_reverse_batch_sync.metadata['url']  # type: ignore
         path_format_arguments = {
             'geography': self._serialize.url("self._config.geography", self._config.geography, 'str'),
             'format': self._serialize.url("format", format, 'str'),
@@ -4245,7 +4548,7 @@ class SearchOperations(object):
         header_parameters['Accept'] = self._serialize.header("accept", accept, 'str')
 
         body_content_kwargs = {}  # type: Dict[str, Any]
-        body_content = self._serialize.body(search_address_batch_request_body, 'BatchRequestBody')
+        body_content = self._serialize.body(search_address_reverse_batch_request_body, 'BatchRequestBody')
         body_content_kwargs['content'] = body_content
         request = self._client.post(url, query_parameters, header_parameters, **body_content_kwargs)
         pipeline_response = self._client._pipeline.run(request, stream=False, **kwargs)
@@ -4256,13 +4559,13 @@ class SearchOperations(object):
             error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
             raise HttpResponseError(response=response, model=error)
 
-        deserialized = self._deserialize('SearchAddressBatchResponse', pipeline_response)
+        deserialized = self._deserialize('SearchAddressReverseBatchResponse', pipeline_response)
 
         if cls:
             return cls(pipeline_response, deserialized, {})
 
         return deserialized
-    post_search_address_batch_sync.metadata = {'url': '/search/address/batch/sync/{format}'}  # type: ignore
+    post_search_address_reverse_batch_sync.metadata = {'url': '/search/address/reverse/batch/sync/{format}'}  # type: ignore
 
     def _post_search_address_reverse_batch_initial(
         self,
@@ -4270,8 +4573,8 @@ class SearchOperations(object):
         search_address_reverse_batch_request_body,  # type: "_models.BatchRequestBody"
         **kwargs  # type: Any
     ):
-        # type: (...) -> None
-        cls = kwargs.pop('cls', None)  # type: ClsType[None]
+        # type: (...) -> Optional["_models.SearchAddressReverseBatchResponse"]
+        cls = kwargs.pop('cls', None)  # type: ClsType[Optional["_models.SearchAddressReverseBatchResponse"]]
         error_map = {
             401: ClientAuthenticationError, 404: ResourceNotFoundError, 409: ResourceExistsError
         }
@@ -4306,17 +4609,23 @@ class SearchOperations(object):
         pipeline_response = self._client._pipeline.run(request, stream=False, **kwargs)
         response = pipeline_response.http_response
 
-        if response.status_code not in [202]:
+        if response.status_code not in [200, 202]:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
             raise HttpResponseError(response=response, model=error)
 
         response_headers = {}
-        response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
+        deserialized = None
+        if response.status_code == 200:
+            deserialized = self._deserialize('SearchAddressReverseBatchResponse', pipeline_response)
+
+        if response.status_code == 202:
+            response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
 
         if cls:
-            return cls(pipeline_response, None, response_headers)
+            return cls(pipeline_response, deserialized, response_headers)
 
+        return deserialized
     _post_search_address_reverse_batch_initial.metadata = {'url': '/search/address/reverse/batch/{format}'}  # type: ignore
 
     def begin_post_search_address_reverse_batch(
@@ -4325,7 +4634,7 @@ class SearchOperations(object):
         search_address_reverse_batch_request_body,  # type: "_models.BatchRequestBody"
         **kwargs  # type: Any
     ):
-        # type: (...) -> LROPoller[None]
+        # type: (...) -> LROPoller["_models.SearchAddressReverseBatchResponse"]
         """**Search Address Reverse Batch API**
 
         **Applies to**\ : S1 pricing tier.
@@ -4550,12 +4859,12 @@ class SearchOperations(object):
          Pass in False for this operation to not poll, or pass in your own initialized polling object for a personal polling strategy.
         :paramtype polling: bool or ~azure.core.polling.PollingMethod
         :keyword int polling_interval: Default waiting time between two polls for LRO operations if no Retry-After header is present.
-        :return: An instance of LROPoller that returns either None or the result of cls(response)
-        :rtype: ~azure.core.polling.LROPoller[None]
+        :return: An instance of LROPoller that returns either SearchAddressReverseBatchResponse or the result of cls(response)
+        :rtype: ~azure.core.polling.LROPoller[~azure.maps.search.models.SearchAddressReverseBatchResponse]
         :raises ~azure.core.exceptions.HttpResponseError:
         """
         polling = kwargs.pop('polling', True)  # type: Union[bool, PollingMethod]
-        cls = kwargs.pop('cls', None)  # type: ClsType[None]
+        cls = kwargs.pop('cls', None)  # type: ClsType["_models.SearchAddressReverseBatchResponse"]
         lro_delay = kwargs.pop(
             'polling_interval',
             self._config.polling_interval
@@ -4573,8 +4882,11 @@ class SearchOperations(object):
         kwargs.pop('content_type', None)
 
         def get_long_running_output(pipeline_response):
+            deserialized = self._deserialize('SearchAddressReverseBatchResponse', pipeline_response)
+
             if cls:
-                return cls(pipeline_response, None, {})
+                return cls(pipeline_response, deserialized, {})
+            return deserialized
 
         path_format_arguments = {
             'geography': self._serialize.url("self._config.geography", self._config.geography, 'str'),
@@ -4922,284 +5234,3 @@ class SearchOperations(object):
         else:
             return LROPoller(self._client, raw_result, get_long_running_output, polling_method)
     begin_get_search_address_reverse_batch.metadata = {'url': '/search/address/reverse/batch/{format}'}  # type: ignore
-
-    def post_search_address_reverse_batch_sync(
-        self,
-        format,  # type: Union[str, "_models.ResponseFormat"]
-        search_address_reverse_batch_request_body,  # type: "_models.BatchRequestBody"
-        **kwargs  # type: Any
-    ):
-        # type: (...) -> "_models.SearchAddressReverseBatchResponse"
-        """**Search Address Reverse Batch API**
-
-        **Applies to**\ : S1 pricing tier.
-
-        The Search Address Batch API sends batches of queries to `Search Address Reverse API
-        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddressreverse>`_ using just a
-        single API call. You can call Search Address Reverse Batch API to run either asynchronously
-        (async) or synchronously (sync). The async API allows caller to batch up to **10,000** queries
-        and sync API up to **100** queries.
-
-        Submit Synchronous Batch Request
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-        The Synchronous API is recommended for lightweight batch requests. When the service receives a
-        request, it will respond as soon as the batch items are calculated and there will be no
-        possibility to retrieve the results later. The Synchronous API will return a timeout error (a
-        408 response) if the request takes longer than 60 seconds. The number of batch items is limited
-        to **100** for this API.
-
-        .. code-block::
-
-           POST
-        https://atlas.microsoft.com/search/address/reverse/batch/sync/json?api-version=1.0&subscription-key={subscription-key}
-
-        Submit Asynchronous Batch Request
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-        The Asynchronous API is appropriate for processing big volumes of relatively complex search
-        requests
-
-
-        * It allows the retrieval of results in a separate call (multiple downloads are possible).
-        * The asynchronous API is optimized for reliability and is not expected to run into a timeout.
-        * The number of batch items is limited to **10,000** for this API.
-
-        When you make a request by using async request, by default the service returns a 202 response
-        code along a redirect URL in the Location field of the response header. This URL should be
-        checked periodically until the response data or error information is available.
-        The asynchronous responses are stored for **14** days. The redirect URL returns a 404 response
-        if used after the expiration period.
-
-        Please note that asynchronous batch request is a long-running request. Here's a typical
-        sequence of operations:
-
-
-        #. Client sends a Search Address Batch ``POST`` request to Azure Maps
-        #.
-           The server will respond with one of the following:
-
-           ..
-
-              HTTP ``202 Accepted`` - Batch request has been accepted.
-
-              HTTP ``Error`` - There was an error processing your Batch request. This could either be a
-        ``400 Bad Request`` or any other ``Error`` status code.
-
-
-        #.
-           If the batch request was accepted successfully, the ``Location`` header in the response
-        contains the URL to download the results of the batch request.
-            This status URI looks like following:
-
-        .. code-block::
-
-               GET
-        https://atlas.microsoft.com/batch/{batch-id}?api-version=1.0&subscription-key={subscription-key}
-
-
-        #. Client issues a ``GET`` request on the *download URL* obtained in Step 3 to download the
-        batch results.
-
-        POST Body for Batch Request
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-        To send the *search address reverse* queries you will use a ``POST`` request where the request
-        body will contain the ``batchItems`` array in ``json`` format and the ``Content-Type`` header
-        will be set to ``application/json``. Here's a sample request body containing 5 *search address
-        reverse* queries:
-
-        .. code-block:: json
-
-           {
-               "batchItems": [
-                   {"query": "?query=48.858561,2.294911"},
-                   {"query": "?query=47.639765,-122.127896&radius=5000&limit=2"},
-                   {"query": "?query=47.621028,-122.348170"},
-                   {"query": "?query=43.722990,10.396695"},
-                   {"query": "?query=40.750958,-73.982336"}
-               ]
-           }
-
-        A *search address reverse* query in a batch is just a partial URL *without* the protocol, base
-        URL, path, api-version and subscription-key. It can accept any of the supported *search address
-        reverse* `URI parameters
-        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddressreverse#uri-parameters>`_.
-        The string values in the *search address reverse* query must be properly escaped (e.g. "
-        character should be escaped with ) and it should also be properly URL-encoded.
-
-        The async API allows caller to batch up to **10,000** queries and sync API up to **100**
-        queries, and the batch should contain at least **1** query.
-
-        Download Asynchronous Batch Results
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-        To download the async batch results you will issue a ``GET`` request to the batch download
-        endpoint. This *download URL* can be obtained from the ``Location`` header of a successful
-        ``POST`` batch request and looks like the following:
-
-        .. code-block::
-
-        https://atlas.microsoft.com/batch/{batch-id}?api-version=1.0&subscription-key={subscription-key}
-
-        Here's the typical sequence of operations for downloading the batch results:
-
-
-        #. Client sends a ``GET`` request using the *download URL*.
-        #.
-           The server will respond with one of the following:
-
-           ..
-
-              HTTP ``202 Accepted`` - Batch request was accepted but is still being processed. Please
-        try again in some time.
-
-              HTTP ``200 OK`` - Batch request successfully processed. The response body contains all
-        the batch results.
-
-
-        Batch Response Model
-        ^^^^^^^^^^^^^^^^^^^^
-
-        The returned data content is similar for async and sync requests. When downloading the results
-        of an async batch request, if the batch has finished processing, the response body contains the
-        batch response. This batch response contains a ``summary`` component that indicates the
-        ``totalRequests`` that were part of the original batch request and ``successfulRequests``\ i.e.
-        queries which were executed successfully. The batch response also includes a ``batchItems``
-        array which contains a response for each and every query in the batch request. The
-        ``batchItems`` will contain the results in the exact same order the original queries were sent
-        in the batch request. Each item in ``batchItems`` contains ``statusCode`` and ``response``
-        fields. Each ``response`` in ``batchItems`` is of one of the following types:
-
-
-        *
-          `\ ``SearchAddressReverseResponse``
-        <https://docs.microsoft.com/en-us/rest/api/maps/search/getsearchaddressreverse#searchaddressreverseresponse>`_
-        - If the query completed successfully.
-
-        *
-          ``Error`` - If the query failed. The response will contain a ``code`` and a ``message`` in
-        this case.
-
-        Here's a sample Batch Response with 2 *successful* and 1 *failed* result:
-
-        .. code-block:: json
-
-           {
-               "summary": {
-                   "successfulRequests": 2,
-                   "totalRequests": 3
-               },
-               "batchItems": [
-                   {
-                       "statusCode": 200,
-                       "response":
-                       {
-                           "summary": {
-                               "queryTime": 11
-                           },
-                           "addresses": [
-                               {
-                                   "address": {
-                                       "country": "France",
-                                       "freeformAddress": "Avenue Anatole France, 75007 Paris"
-                                   },
-                                   "position": "48.858490,2.294820"
-                               }
-                           ]
-                       }
-                   },
-                   {
-                       "statusCode": 200,
-                       "response":
-                       {
-                           "summary": {
-                               "queryTime": 1
-                           },
-                           "addresses": [
-                               {
-                                   "address": {
-                                       "country": "United States of America",
-                                       "freeformAddress": "157th Pl NE, Redmond WA 98052"
-                                   },
-                                   "position": "47.640470,-122.129430"
-                               }
-                           ]
-                       }
-                   },
-                   {
-                       "statusCode": 400,
-                       "response":
-                       {
-                           "error":
-                           {
-                               "code": "400 BadRequest",
-                               "message": "Bad request: one or more parameters were incorrectly
-        specified or are mutually exclusive."
-                           }
-                       }
-                   }
-               ]
-           }.
-
-        :param format: Desired format of the response. Only ``json`` format is supported.
-        :type format: str or ~azure.maps.search.models.ResponseFormat
-        :param search_address_reverse_batch_request_body: The list of reverse geocoding
-         queries/requests to process. The list can contain  a max of 10,000 queries and must contain at
-         least 1 query.
-        :type search_address_reverse_batch_request_body: ~azure.maps.search.models.BatchRequestBody
-        :keyword callable cls: A custom type or function that will be passed the direct response
-        :return: SearchAddressReverseBatchResponse, or the result of cls(response)
-        :rtype: ~azure.maps.search.models.SearchAddressReverseBatchResponse
-        :raises: ~azure.core.exceptions.HttpResponseError
-        """
-        cls = kwargs.pop('cls', None)  # type: ClsType["_models.SearchAddressReverseBatchResponse"]
-        error_map = {
-            401: ClientAuthenticationError,
-            404: ResourceNotFoundError,
-            409: ResourceExistsError,
-            408: lambda response: HttpResponseError(response=response, model=self._deserialize(_models.ErrorResponse, response)),
-        }
-        error_map.update(kwargs.pop('error_map', {}))
-        api_version = "1.0"
-        content_type = kwargs.pop("content_type", "application/json")
-        accept = "application/json"
-
-        # Construct URL
-        url = self.post_search_address_reverse_batch_sync.metadata['url']  # type: ignore
-        path_format_arguments = {
-            'geography': self._serialize.url("self._config.geography", self._config.geography, 'str'),
-            'format': self._serialize.url("format", format, 'str'),
-        }
-        url = self._client.format_url(url, **path_format_arguments)
-
-        # Construct parameters
-        query_parameters = {}  # type: Dict[str, Any]
-        query_parameters['api-version'] = self._serialize.query("api_version", api_version, 'str')
-
-        # Construct headers
-        header_parameters = {}  # type: Dict[str, Any]
-        if self._config.x_ms_client_id is not None:
-            header_parameters['x-ms-client-id'] = self._serialize.header("self._config.x_ms_client_id", self._config.x_ms_client_id, 'str')
-        header_parameters['Content-Type'] = self._serialize.header("content_type", content_type, 'str')
-        header_parameters['Accept'] = self._serialize.header("accept", accept, 'str')
-
-        body_content_kwargs = {}  # type: Dict[str, Any]
-        body_content = self._serialize.body(search_address_reverse_batch_request_body, 'BatchRequestBody')
-        body_content_kwargs['content'] = body_content
-        request = self._client.post(url, query_parameters, header_parameters, **body_content_kwargs)
-        pipeline_response = self._client._pipeline.run(request, stream=False, **kwargs)
-        response = pipeline_response.http_response
-
-        if response.status_code not in [200]:
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
-            error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
-            raise HttpResponseError(response=response, model=error)
-
-        deserialized = self._deserialize('SearchAddressReverseBatchResponse', pipeline_response)
-
-        if cls:
-            return cls(pipeline_response, deserialized, {})
-
-        return deserialized
-    post_search_address_reverse_batch_sync.metadata = {'url': '/search/address/reverse/batch/sync/{format}'}  # type: ignore

@@ -6,5 +6,5 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_elevation_client import MapsElevationClient
-__all__ = ['MapsElevationClient']
+from ._elevation_client import ElevationClient
+__all__ = ['ElevationClient']

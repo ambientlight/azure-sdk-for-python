@@ -6,11 +6,11 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_search_client import MapsSearchClient
+from ._search_client import SearchClient
 from ._version import VERSION
 
 __version__ = VERSION
-__all__ = ['MapsSearchClient']
+__all__ = ['SearchClient']
 
 try:
     from ._patch import patch_sdk  # type: ignore

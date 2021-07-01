@@ -6,5 +6,5 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_traffic_client import MapsTrafficClient
-__all__ = ['MapsTrafficClient']
+from ._traffic_client import TrafficClient
+__all__ = ['TrafficClient']

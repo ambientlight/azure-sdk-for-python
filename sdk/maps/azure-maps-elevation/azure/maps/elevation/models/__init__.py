@@ -27,7 +27,7 @@ except (SyntaxError, ImportError):
     from ._models import PointElevationResult  # type: ignore
     from ._models import PointsResult  # type: ignore
 
-from ._maps_elevation_client_enums import (
+from ._elevation_client_enums import (
     GeographicResourceLocation,
     Geography,
     ResponseFormat,

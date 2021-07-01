@@ -6,5 +6,5 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_search_client import MapsSearchClient
-__all__ = ['MapsSearchClient']
+from ._search_client import SearchClient
+__all__ = ['SearchClient']

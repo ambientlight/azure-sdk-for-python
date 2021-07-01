@@ -510,12 +510,16 @@ class RouteOperations(object):
             error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
             raise HttpResponseError(response=response, model=error)
 
+        response_headers = {}
         deserialized = None
         if response.status_code == 200:
             deserialized = self._deserialize('RouteMatrixResponse', pipeline_response)
 
+        if response.status_code == 202:
+            response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
+
         if cls:
-            return cls(pipeline_response, deserialized, {})
+            return cls(pipeline_response, deserialized, response_headers)
 
         return deserialized
     _get_route_matrix_initial.metadata = {'url': '/route/matrix/{format}'}  # type: ignore
@@ -622,6 +626,334 @@ class RouteOperations(object):
         else:
             return LROPoller(self._client, raw_result, get_long_running_output, polling_method)
     begin_get_route_matrix.metadata = {'url': '/route/matrix/{format}'}  # type: ignore
+
+    def post_route_matrix_sync(
+        self,
+        format,  # type: Union[str, "_models.ResponseFormat"]
+        post_route_matrix_request_body,  # type: "_models.PostRouteMatrixRequestBody"
+        wait_for_results=None,  # type: Optional[bool]
+        compute_travel_time_for=None,  # type: Optional[Union[str, "_models.ComputeTravelTimeFor"]]
+        section_type=None,  # type: Optional[Union[str, "_models.SectionType"]]
+        arrive_at=None,  # type: Optional[datetime.datetime]
+        depart_at=None,  # type: Optional[datetime.datetime]
+        vehicle_axle_weight=None,  # type: Optional[int]
+        vehicle_length=None,  # type: Optional[float]
+        vehicle_height=None,  # type: Optional[float]
+        vehicle_width=None,  # type: Optional[float]
+        vehicle_max_speed=None,  # type: Optional[int]
+        vehicle_weight=None,  # type: Optional[int]
+        windingness=None,  # type: Optional[Union[str, "_models.WindingnessLevel"]]
+        hilliness=None,  # type: Optional[Union[str, "_models.HillinessDegree"]]
+        travel_mode=None,  # type: Optional[Union[str, "_models.TravelMode"]]
+        avoid=None,  # type: Optional[List[Union[str, "_models.RouteAvoidType"]]]
+        traffic=None,  # type: Optional[bool]
+        route_type=None,  # type: Optional[Union[str, "_models.RouteType"]]
+        vehicle_load_type=None,  # type: Optional[Union[str, "_models.VehicleLoadType"]]
+        **kwargs  # type: Any
+    ):
+        # type: (...) -> "_models.RouteMatrixResponse"
+        """**Applies to**\ : S1 pricing tier.
+
+        The Matrix Routing service allows calculation of a matrix of route summaries for a set of
+        routes defined by origin and destination locations by using an asynchronous (async) or
+        synchronous (sync) POST request. For every given origin, the service calculates the cost of
+        routing from that origin to every given destination. The set of origins and the set of
+        destinations can be thought of as the column and row headers of a table and each cell in the
+        table contains the costs of routing from the origin to the destination for that cell. As an
+        example, let's say a food delivery company has 20 drivers and they need to find the closest
+        driver to pick up the delivery from the restaurant. To solve this use case, they can call
+        Matrix Route API.
+
+        For each route, the travel times and distances are returned. You can use the computed costs to
+        determine which detailed routes to calculate using the Route Directions API.
+
+        The maximum size of a matrix for async request is **700** and for sync request it's **100**
+        (the number of origins multiplied by the number of destinations).
+
+        Submit Synchronous Route Matrix Request
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        If your scenario requires synchronous requests and the maximum size of the matrix is less than
+        or equal to 100, you might want to make synchronous request. The maximum size of a matrix for
+        this API is **100** (the number of origins multiplied by the number of destinations). With that
+        constraint in mind, examples of possible matrix dimensions are: 10x10, 6x8, 9x8 (it does not
+        need to be square).
+
+        .. code-block::
+
+           POST
+        https://atlas.microsoft.com/route/matrix/sync/json?api-version=1.0&subscription-key={subscription-key}
+
+        Submit Asynchronous Route Matrix Request
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        The Asynchronous API is appropriate for processing big volumes of relatively complex routing
+        requests. When you make a request by using async request, by default the service returns a 202
+        response code along a redirect URL in the Location field of the response header. This URL
+        should be checked periodically until the response data or error information is available. If
+        ``waitForResults`` parameter in the request is set to true, user will get a 200 response if the
+        request is finished under 120 seconds.
+
+        The maximum size of a matrix for this API is **700** (the number of origins multiplied by the
+        number of destinations). With that constraint in mind, examples of possible matrix dimensions
+        are: 50x10, 10x10, 28x25. 10x70 (it does not need to be square).
+
+        The asynchronous responses are stored for **14** days. The redirect URL returns a 404 response
+        if used after the expiration period.
+
+        .. code-block::
+
+           POST
+        https://atlas.microsoft.com/route/matrix/json?api-version=1.0&subscription-key={subscription-key}
+
+        Here's a typical sequence of asynchronous operations:
+
+
+        #.
+           Client sends a Route Matrix POST request to Azure Maps
+
+        #.
+           The server will respond with one of the following:
+
+           ..
+
+              HTTP ``202 Accepted`` -  Route Matrix request has been accepted.
+
+              HTTP ``Error`` - There was an error processing your Route Matrix request. This could
+        either be a 400 Bad Request or any other Error status code.
+
+
+
+        #.
+           If the Matrix Route request was accepted successfully, the Location header in the response
+        contains the URL to download the results of the request. This status URI looks like the
+        following:
+
+           .. code-block::
+
+               GET
+        https://atlas.microsoft.com/route/matrix/{matrixId}?api-version=1.0?subscription-key={subscription-key}
+
+
+        #. Client issues a GET request on the download URL obtained in Step 3 to download the results
+
+        Download Sync Results
+        ^^^^^^^^^^^^^^^^^^^^^
+
+        When you make a POST request for Route Matrix Sync API, the service returns 200 response code
+        for successful request and a response array. The response body will contain the data and there
+        will be no possibility to retrieve the results later.
+
+        Download Async Results
+        ^^^^^^^^^^^^^^^^^^^^^^
+
+        When a request issues a ``202 Accepted`` response, the request is being processed using our
+        async pipeline. You will be given a URL to check the progress of your  async request in the
+        location header of the response. This status URI looks like the following:
+
+        .. code-block::
+
+             GET
+        https://atlas.microsoft.com/route/matrix/{matrixId}?api-version=1.0?subscription-key={subscription-key}
+
+        The URL provided by the location header will return the following responses when a ``GET``
+        request is issued.
+
+        ..
+
+           HTTP ``202 Accepted`` - Matrix request was accepted but is still being processed. Please try
+        again in some time.
+
+           HTTP ``200 OK`` - Matrix request successfully processed. The response body contains all of
+        the results.
+
+        :param format: Desired format of the response. Only ``json`` format is supported.
+        :type format: str or ~azure.maps.route.models.ResponseFormat
+        :param post_route_matrix_request_body: The matrix of origin and destination coordinates to
+         compute the route distance, travel time and other summary for each cell of the matrix based on
+         the input parameters. The minimum and the maximum cell count supported are 1 and **700** for
+         async and **100** for sync respectively. For example, it can be 35 origins and 20 destinations
+         or 25 origins and 25 destinations for async API.
+        :type post_route_matrix_request_body: ~azure.maps.route.models.PostRouteMatrixRequestBody
+        :param wait_for_results: Boolean to indicate whether to execute the request synchronously. If
+         set to true, user will get a 200 response if the request is finished under 120 seconds.
+         Otherwise, user will get a 202 response right away. Please refer to the API description for
+         more details on 202 response. **Supported only for async request**.
+        :type wait_for_results: bool
+        :param compute_travel_time_for: Specifies whether to return additional travel times using
+         different types of traffic information (none, historic, live) as well as the default
+         best-estimate travel time.
+        :type compute_travel_time_for: str or ~azure.maps.route.models.ComputeTravelTimeFor
+        :param section_type: Specifies which of the section types is reported in the route response.
+         :code:`<br>`:code:`<br>`For example if sectionType = pedestrian the sections which are suited
+         for pedestrians only are returned. Multiple types can be used. The default sectionType refers
+         to the travelMode input. By default travelMode is set to car.
+        :type section_type: str or ~azure.maps.route.models.SectionType
+        :param arrive_at: The date and time of arrival at the destination point. It must be specified
+         as a dateTime. When a time zone offset is not specified it will be assumed to be that of the
+         destination point. The arriveAt value must be in the future. The arriveAt parameter cannot be
+         used in conjunction with departAt, minDeviationDistance or minDeviationTime.
+        :type arrive_at: ~datetime.datetime
+        :param depart_at: The date and time of departure from the origin point. Departure times apart
+         from now must be specified as a dateTime. When a time zone offset is not specified, it will be
+         assumed to be that of the origin point. The departAt value must be in the future in the
+         date-time format (1996-12-19T16:39:57-08:00).
+        :type depart_at: ~datetime.datetime
+        :param vehicle_axle_weight: Weight per axle of the vehicle in kg. A value of 0 means that
+         weight restrictions per axle are not considered.
+        :type vehicle_axle_weight: int
+        :param vehicle_length: Length of the vehicle in meters. A value of 0 means that length
+         restrictions are not considered.
+        :type vehicle_length: float
+        :param vehicle_height: Height of the vehicle in meters. A value of 0 means that height
+         restrictions are not considered.
+        :type vehicle_height: float
+        :param vehicle_width: Width of the vehicle in meters. A value of 0 means that width
+         restrictions are not considered.
+        :type vehicle_width: float
+        :param vehicle_max_speed: Maximum speed of the vehicle in km/hour. The max speed in the vehicle
+         profile is used to check whether a vehicle is allowed on motorways.
+
+
+         *
+           A value of 0 means that an appropriate value for the vehicle will be determined and applied
+         during route planning.
+
+         *
+           A non-zero value may be overridden during route planning. For example, the current traffic
+         flow is 60 km/hour. If the vehicle  maximum speed is set to 50 km/hour, the routing engine will
+         consider 60 km/hour as this is the current situation.  If the maximum speed of the vehicle is
+         provided as 80 km/hour but the current traffic flow is 60 km/hour, then routing engine will
+         again use 60 km/hour.
+        :type vehicle_max_speed: int
+        :param vehicle_weight: Weight of the vehicle in kilograms.
+        :type vehicle_weight: int
+        :param windingness: Level of turns for thrilling route. This parameter can only be used in
+         conjunction with ``routeType``\ =thrilling.
+        :type windingness: str or ~azure.maps.route.models.WindingnessLevel
+        :param hilliness: Degree of hilliness for thrilling route. This parameter can only be used in
+         conjunction with ``routeType``\ =thrilling.
+        :type hilliness: str or ~azure.maps.route.models.HillinessDegree
+        :param travel_mode: The mode of travel for the requested route. If not defined, default is
+         'car'. Note that the requested travelMode may not be available for the entire route. Where the
+         requested travelMode is not available for a particular section, the travelMode element of the
+         response for that section will be "other". Note that travel modes bus, motorcycle, taxi and van
+         are BETA functionality. Full restriction data is not available in all areas. In
+         **calculateReachableRange** requests, the values bicycle and pedestrian must not be used.
+        :type travel_mode: str or ~azure.maps.route.models.TravelMode
+        :param avoid: Specifies something that the route calculation should try to avoid when
+         determining the route. Can be specified multiple times in one request, for example,
+         '&avoid=motorways&avoid=tollRoads&avoid=ferries'. In calculateReachableRange requests, the
+         value alreadyUsedRoads must not be used.
+        :type avoid: list[str or ~azure.maps.route.models.RouteAvoidType]
+        :param traffic: Possible values:
+
+
+         * true - Do consider all available traffic information during routing
+         * false - Ignore current traffic data during routing. Note that although the current traffic
+         data is ignored
+           during routing, the effect of historic traffic on effective road speeds is still
+         incorporated.
+        :type traffic: bool
+        :param route_type: The type of route requested.
+        :type route_type: str or ~azure.maps.route.models.RouteType
+        :param vehicle_load_type: Types of cargo that may be classified as hazardous materials and
+         restricted from some roads. Available vehicleLoadType values are US Hazmat classes 1 through 9,
+         plus generic classifications for use in other countries. Values beginning with USHazmat are for
+         US routing while otherHazmat should be used for all other countries. vehicleLoadType can be
+         specified multiple times. This parameter is currently only considered for travelMode=truck.
+        :type vehicle_load_type: str or ~azure.maps.route.models.VehicleLoadType
+        :keyword callable cls: A custom type or function that will be passed the direct response
+        :return: RouteMatrixResponse, or the result of cls(response)
+        :rtype: ~azure.maps.route.models.RouteMatrixResponse
+        :raises: ~azure.core.exceptions.HttpResponseError
+        """
+        cls = kwargs.pop('cls', None)  # type: ClsType["_models.RouteMatrixResponse"]
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            408: lambda response: HttpResponseError(response=response, model=self._deserialize(_models.ErrorResponse, response)),
+        }
+        error_map.update(kwargs.pop('error_map', {}))
+        api_version = "1.0"
+        content_type = kwargs.pop("content_type", "application/json")
+        accept = "application/json"
+
+        # Construct URL
+        url = self.post_route_matrix_sync.metadata['url']  # type: ignore
+        path_format_arguments = {
+            'geography': self._serialize.url("self._config.geography", self._config.geography, 'str'),
+            'format': self._serialize.url("format", format, 'str'),
+        }
+        url = self._client.format_url(url, **path_format_arguments)
+
+        # Construct parameters
+        query_parameters = {}  # type: Dict[str, Any]
+        query_parameters['api-version'] = self._serialize.query("api_version", api_version, 'str')
+        if wait_for_results is not None:
+            query_parameters['waitForResults'] = self._serialize.query("wait_for_results", wait_for_results, 'bool')
+        if compute_travel_time_for is not None:
+            query_parameters['computeTravelTimeFor'] = self._serialize.query("compute_travel_time_for", compute_travel_time_for, 'str')
+        if section_type is not None:
+            query_parameters['sectionType'] = self._serialize.query("section_type", section_type, 'str')
+        if arrive_at is not None:
+            query_parameters['arriveAt'] = self._serialize.query("arrive_at", arrive_at, 'iso-8601')
+        if depart_at is not None:
+            query_parameters['departAt'] = self._serialize.query("depart_at", depart_at, 'iso-8601')
+        if vehicle_axle_weight is not None:
+            query_parameters['vehicleAxleWeight'] = self._serialize.query("vehicle_axle_weight", vehicle_axle_weight, 'int')
+        if vehicle_length is not None:
+            query_parameters['vehicleLength'] = self._serialize.query("vehicle_length", vehicle_length, 'float')
+        if vehicle_height is not None:
+            query_parameters['vehicleHeight'] = self._serialize.query("vehicle_height", vehicle_height, 'float')
+        if vehicle_width is not None:
+            query_parameters['vehicleWidth'] = self._serialize.query("vehicle_width", vehicle_width, 'float')
+        if vehicle_max_speed is not None:
+            query_parameters['vehicleMaxSpeed'] = self._serialize.query("vehicle_max_speed", vehicle_max_speed, 'int')
+        if vehicle_weight is not None:
+            query_parameters['vehicleWeight'] = self._serialize.query("vehicle_weight", vehicle_weight, 'int')
+        if windingness is not None:
+            query_parameters['windingness'] = self._serialize.query("windingness", windingness, 'str')
+        if hilliness is not None:
+            query_parameters['hilliness'] = self._serialize.query("hilliness", hilliness, 'str')
+        if travel_mode is not None:
+            query_parameters['travelMode'] = self._serialize.query("travel_mode", travel_mode, 'str')
+        if avoid is not None:
+            query_parameters['avoid'] = [self._serialize.query("avoid", q, 'str') if q is not None else '' for q in avoid]
+        if traffic is not None:
+            query_parameters['traffic'] = self._serialize.query("traffic", traffic, 'bool')
+        if route_type is not None:
+            query_parameters['routeType'] = self._serialize.query("route_type", route_type, 'str')
+        if vehicle_load_type is not None:
+            query_parameters['vehicleLoadType'] = self._serialize.query("vehicle_load_type", vehicle_load_type, 'str')
+
+        # Construct headers
+        header_parameters = {}  # type: Dict[str, Any]
+        if self._config.x_ms_client_id is not None:
+            header_parameters['x-ms-client-id'] = self._serialize.header("self._config.x_ms_client_id", self._config.x_ms_client_id, 'str')
+        header_parameters['Content-Type'] = self._serialize.header("content_type", content_type, 'str')
+        header_parameters['Accept'] = self._serialize.header("accept", accept, 'str')
+
+        body_content_kwargs = {}  # type: Dict[str, Any]
+        body_content = self._serialize.body(post_route_matrix_request_body, 'PostRouteMatrixRequestBody')
+        body_content_kwargs['content'] = body_content
+        request = self._client.post(url, query_parameters, header_parameters, **body_content_kwargs)
+        pipeline_response = self._client._pipeline.run(request, stream=False, **kwargs)
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
+            raise HttpResponseError(response=response, model=error)
+
+        deserialized = self._deserialize('RouteMatrixResponse', pipeline_response)
+
+        if cls:
+            return cls(pipeline_response, deserialized, {})
+
+        return deserialized
+    post_route_matrix_sync.metadata = {'url': '/route/matrix/sync/{format}'}  # type: ignore
 
     def get_route_directions(
         self,
@@ -2157,8 +2489,8 @@ class RouteOperations(object):
         post_route_directions_batch_request_body,  # type: "_models.BatchRequestBody"
         **kwargs  # type: Any
     ):
-        # type: (...) -> None
-        cls = kwargs.pop('cls', None)  # type: ClsType[None]
+        # type: (...) -> Optional["_models.RouteDirectionsBatchResponse"]
+        cls = kwargs.pop('cls', None)  # type: ClsType[Optional["_models.RouteDirectionsBatchResponse"]]
         error_map = {
             401: ClientAuthenticationError, 404: ResourceNotFoundError, 409: ResourceExistsError
         }
@@ -2193,14 +2525,23 @@ class RouteOperations(object):
         pipeline_response = self._client._pipeline.run(request, stream=False, **kwargs)
         response = pipeline_response.http_response
 
-        if response.status_code not in [202]:
+        if response.status_code not in [200, 202]:
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
             raise HttpResponseError(response=response, model=error)
 
-        if cls:
-            return cls(pipeline_response, None, {})
+        response_headers = {}
+        deserialized = None
+        if response.status_code == 200:
+            deserialized = self._deserialize('RouteDirectionsBatchResponse', pipeline_response)
 
+        if response.status_code == 202:
+            response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
+
+        if cls:
+            return cls(pipeline_response, deserialized, response_headers)
+
+        return deserialized
     _post_route_directions_batch_initial.metadata = {'url': '/route/directions/batch/{format}'}  # type: ignore
 
     def begin_post_route_directions_batch(
@@ -2209,7 +2550,7 @@ class RouteOperations(object):
         post_route_directions_batch_request_body,  # type: "_models.BatchRequestBody"
         **kwargs  # type: Any
     ):
-        # type: (...) -> LROPoller[None]
+        # type: (...) -> LROPoller["_models.RouteDirectionsBatchResponse"]
         """**Route Directions Batch API**
 
         **Applies to**\ : S1 pricing tier.
@@ -2447,12 +2788,12 @@ class RouteOperations(object):
          Pass in False for this operation to not poll, or pass in your own initialized polling object for a personal polling strategy.
         :paramtype polling: bool or ~azure.core.polling.PollingMethod
         :keyword int polling_interval: Default waiting time between two polls for LRO operations if no Retry-After header is present.
-        :return: An instance of LROPoller that returns either None or the result of cls(response)
-        :rtype: ~azure.core.polling.LROPoller[None]
+        :return: An instance of LROPoller that returns either RouteDirectionsBatchResponse or the result of cls(response)
+        :rtype: ~azure.core.polling.LROPoller[~azure.maps.route.models.RouteDirectionsBatchResponse]
         :raises ~azure.core.exceptions.HttpResponseError:
         """
         polling = kwargs.pop('polling', True)  # type: Union[bool, PollingMethod]
-        cls = kwargs.pop('cls', None)  # type: ClsType[None]
+        cls = kwargs.pop('cls', None)  # type: ClsType["_models.RouteDirectionsBatchResponse"]
         lro_delay = kwargs.pop(
             'polling_interval',
             self._config.polling_interval
@@ -2470,8 +2811,11 @@ class RouteOperations(object):
         kwargs.pop('content_type', None)
 
         def get_long_running_output(pipeline_response):
+            deserialized = self._deserialize('RouteDirectionsBatchResponse', pipeline_response)
+
             if cls:
-                return cls(pipeline_response, None, {})
+                return cls(pipeline_response, deserialized, {})
+            return deserialized
 
         path_format_arguments = {
             'geography': self._serialize.url("self._config.geography", self._config.geography, 'str'),
@@ -2533,12 +2877,16 @@ class RouteOperations(object):
             error = self._deserialize.failsafe_deserialize(_models.ErrorResponse, response)
             raise HttpResponseError(response=response, model=error)
 
+        response_headers = {}
         deserialized = None
         if response.status_code == 200:
             deserialized = self._deserialize('RouteDirectionsBatchResponse', pipeline_response)
 
+        if response.status_code == 202:
+            response_headers['Location']=self._deserialize('str', response.headers.get('Location'))
+
         if cls:
-            return cls(pipeline_response, deserialized, {})
+            return cls(pipeline_response, deserialized, response_headers)
 
         return deserialized
     _get_route_directions_batch_initial.metadata = {'url': '/route/directions/batch/{format}'}  # type: ignore
@@ -2753,7 +3101,212 @@ class RouteOperations(object):
         possibility to retrieve the results later. The Synchronous API will return a timeout error (a
         408 response) if the request takes longer than 60 seconds. The number of batch items is limited
         to **100** for this API.
-        ```.
+
+        .. code-block::
+
+           POST
+        https://atlas.microsoft.com/route/directions/batch/sync/json?api-version=1.0&subscription-key={subscription-key}
+
+        Submit Asynchronous Batch Request
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        The Asynchronous API is appropriate for processing big volumes of relatively complex route
+        requests
+
+
+        * It allows the retrieval of results in a separate call (multiple downloads are possible).
+        * The asynchronous API is optimized for reliability and is not expected to run into a timeout.
+        * The number of batch items is limited to **700** for this API.
+
+        When you make a request by using async request, by default the service returns a 202 response
+        code along a redirect URL in the Location field of the response header. This URL should be
+        checked periodically until the response data or error information is available.
+        The asynchronous responses are stored for **14** days. The redirect URL returns a 404 response
+        if used after the expiration period.
+
+        Please note that asynchronous batch request is a long-running request. Here's a typical
+        sequence of operations:
+
+
+        #. Client sends a Route Directions Batch ``POST`` request to Azure Maps
+        #.
+           The server will respond with one of the following:
+
+           ..
+
+              HTTP ``202 Accepted`` - Batch request has been accepted.
+
+              HTTP ``Error`` - There was an error processing your Batch request. This could either be a
+        ``400 Bad Request`` or any other ``Error`` status code.
+
+
+        #.
+           If the batch request was accepted successfully, the ``Location`` header in the response
+        contains the URL to download the results of the batch request.
+            This status URI looks like following:
+
+        ``GET https://atlas.microsoft.com/batch/{batch-id}?api-version=1.0``
+        Note:- Please remember to add AUTH information (subscription-key/azure_auth - See `Security
+        <#security>`_\ ) to the *status URI* before running it. :code:`<br>`
+
+
+        #. Client issues a ``GET`` request on the *download URL* obtained in Step 3 to download the
+        batch results.
+
+        POST Body for Batch Request
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        To send the *route directions* queries you will use a ``POST`` request where the request body
+        will contain the ``batchItems`` array in ``json`` format and the ``Content-Type`` header will
+        be set to ``application/json``. Here's a sample request body containing 3 *route directions*
+        queries:
+
+        .. code-block:: json
+
+           {
+               "batchItems": [
+                   { "query":
+        "?query=47.620659,-122.348934:47.610101,-122.342015&travelMode=bicycle&routeType=eco&traffic=false"
+        },
+                   { "query":
+        "?query=40.759856,-73.985108:40.771136,-73.973506&travelMode=pedestrian&routeType=shortest" },
+                   { "query": "?query=48.923159,-122.557362:32.621279,-116.840362" }
+               ]
+           }
+
+        A *route directions* query in a batch is just a partial URL *without* the protocol, base URL,
+        path, api-version and subscription-key. It can accept any of the supported *route directions*
+        `URI parameters
+        <https://docs.microsoft.com/en-us/rest/api/maps/route/getroutedirections#uri-parameters>`_. The
+        string values in the *route directions* query must be properly escaped (e.g. " character should
+        be escaped with ) and it should also be properly URL-encoded.
+
+        The async API allows caller to batch up to **700** queries and sync API up to **100** queries,
+        and the batch should contain at least **1** query.
+
+        Download Asynchronous Batch Results
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        To download the async batch results you will issue a ``GET`` request to the batch download
+        endpoint. This *download URL* can be obtained from the ``Location`` header of a successful
+        ``POST`` batch request and looks like the following:
+
+        .. code-block::
+
+        https://atlas.microsoft.com/batch/{batch-id}?api-version=1.0&subscription-key={subscription-key}
+
+        Here's the typical sequence of operations for downloading the batch results:
+
+
+        #. Client sends a ``GET`` request using the *download URL*.
+        #.
+           The server will respond with one of the following:
+
+           ..
+
+              HTTP ``202 Accepted`` - Batch request was accepted but is still being processed. Please
+        try again in some time.
+
+              HTTP ``200 OK`` - Batch request successfully processed. The response body contains all
+        the batch results.
+
+
+        Batch Response Model
+        ^^^^^^^^^^^^^^^^^^^^
+
+        The returned data content is similar for async and sync requests. When downloading the results
+        of an async batch request, if the batch has finished processing, the response body contains the
+        batch response. This batch response contains a ``summary`` component that indicates the
+        ``totalRequests`` that were part of the original batch request and ``successfulRequests``\ i.e.
+        queries which were executed successfully. The batch response also includes a ``batchItems``
+        array which contains a response for each and every query in the batch request. The
+        ``batchItems`` will contain the results in the exact same order the original queries were sent
+        in the batch request. Each item in ``batchItems`` contains ``statusCode`` and ``response``
+        fields. Each ``response`` in ``batchItems`` is of one of the following types:
+
+
+        *
+          `\ ``RouteDirectionsResponse``
+        <https://docs.microsoft.com/en-us/rest/api/maps/route/getroutedirections#routedirectionsresponse>`_
+        - If the query completed successfully.
+
+        *
+          ``Error`` - If the query failed. The response will contain a ``code`` and a ``message`` in
+        this case.
+
+        Here's a sample Batch Response with 1 *successful* and 1 *failed* result:
+
+        .. code-block:: json
+
+           {
+               "summary": {
+                   "successfulRequests": 1,
+                   "totalRequests": 2
+               },
+               "batchItems": [
+                   {
+                       "statusCode": 200,
+                       "response": {
+                           "routes": [
+                               {
+                                   "summary": {
+                                       "lengthInMeters": 1758,
+                                       "travelTimeInSeconds": 387,
+                                       "trafficDelayInSeconds": 0,
+                                       "departureTime": "2018-07-17T00:49:56+00:00",
+                                       "arrivalTime": "2018-07-17T00:56:22+00:00"
+                                   },
+                                   "legs": [
+                                       {
+                                           "summary": {
+                                               "lengthInMeters": 1758,
+                                               "travelTimeInSeconds": 387,
+                                               "trafficDelayInSeconds": 0,
+                                               "departureTime": "2018-07-17T00:49:56+00:00",
+                                               "arrivalTime": "2018-07-17T00:56:22+00:00"
+                                           },
+                                           "points": [
+                                               {
+                                                   "latitude": 47.62094,
+                                                   "longitude": -122.34892
+                                               },
+                                               {
+                                                   "latitude": 47.62094,
+                                                   "longitude": -122.3485
+                                               },
+                                               {
+                                                   "latitude": 47.62095,
+                                                   "longitude": -122.3476
+                                               }
+                                           ]
+                                       }
+                                   ],
+                                   "sections": [
+                                       {
+                                           "startPointIndex": 0,
+                                           "endPointIndex": 40,
+                                           "sectionType": "TRAVEL_MODE",
+                                           "travelMode": "bicycle"
+                                       }
+                                   ]
+                               }
+                           ]
+                       }
+                   },
+                   {
+                       "statusCode": 400,
+                       "response":
+                       {
+                           "error":
+                           {
+                               "code": "400 BadRequest",
+                               "message": "Bad request: one or more parameters were incorrectly
+        specified or are mutually exclusive."
+                           }
+                       }
+                   }
+               ]
+           }.
 
         :param format: Desired format of the response. Only ``json`` format is supported.
         :type format: str or ~azure.maps.route.models.ResponseFormat

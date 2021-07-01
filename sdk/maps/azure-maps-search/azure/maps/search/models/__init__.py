@@ -143,7 +143,7 @@ except (SyntaxError, ImportError):
     from ._models import SearchResultViewport  # type: ignore
     from ._models import SearchSummaryGeoBias  # type: ignore
 
-from ._maps_search_client_enums import (
+from ._search_client_enums import (
     ConnectorSet,
     EntityType,
     EntryPointType,

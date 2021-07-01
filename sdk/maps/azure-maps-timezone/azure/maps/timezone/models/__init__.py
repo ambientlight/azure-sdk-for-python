@@ -41,7 +41,7 @@ except (SyntaxError, ImportError):
     from ._models import TimezoneIanaVersionResult  # type: ignore
     from ._models import TimezoneNames  # type: ignore
 
-from ._maps_timezone_client_enums import (
+from ._timezone_client_enums import (
     GeographicResourceLocation,
     Geography,
     ResponseFormat,

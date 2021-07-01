@@ -117,7 +117,7 @@ except (SyntaxError, ImportError):
     from ._models import RouteResultSectionTec  # type: ignore
     from ._models import RouteResultSectionTecCause  # type: ignore
 
-from ._maps_route_client_enums import (
+from ._route_client_enums import (
     AlternativeRouteType,
     ComputeTravelTimeFor,
     DrivingSide,

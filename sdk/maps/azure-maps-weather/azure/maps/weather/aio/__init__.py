@@ -6,5 +6,5 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_weather_client import MapsWeatherClient
-__all__ = ['MapsWeatherClient']
+from ._weather_client import WeatherClient
+__all__ = ['WeatherClient']

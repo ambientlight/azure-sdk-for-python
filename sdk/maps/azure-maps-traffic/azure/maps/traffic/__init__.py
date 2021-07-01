@@ -6,11 +6,11 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_traffic_client import MapsTrafficClient
+from ._traffic_client import TrafficClient
 from ._version import VERSION
 
 __version__ = VERSION
-__all__ = ['MapsTrafficClient']
+__all__ = ['TrafficClient']
 
 try:
     from ._patch import patch_sdk  # type: ignore

@@ -6,11 +6,11 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_render_client import MapsRenderClient
+from ._render_client import RenderClient
 from ._version import VERSION
 
 __version__ = VERSION
-__all__ = ['MapsRenderClient']
+__all__ = ['RenderClient']
 
 try:
     from ._patch import patch_sdk  # type: ignore

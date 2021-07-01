@@ -6,11 +6,11 @@
 # Changes may cause incorrect behavior and will be lost if the code is regenerated.
 # --------------------------------------------------------------------------
 
-from ._maps_geolocation_client import MapsGeolocationClient
+from ._geolocation_client import GeolocationClient
 from ._version import VERSION
 
 __version__ = VERSION
-__all__ = ['MapsGeolocationClient']
+__all__ = ['GeolocationClient']
 
 try:
     from ._patch import patch_sdk  # type: ignore
