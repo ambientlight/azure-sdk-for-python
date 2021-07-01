@@ -113,6 +113,13 @@ def main(generate_input, generate_output):
                 continue
 
             package_total.add(package_name)
+            # Generate some necessary file for new service
+            try:
+                init_new_service(package_name, folder_name)
+            except Exception as e:
+                _LOGGER.info(str(e))
+                continue
+            
             if package_name not in result:
                 package_entry = {}
                 package_entry["packageName"] = package_name
@@ -123,20 +130,21 @@ def main(generate_input, generate_output):
                 result[package_name]["path"].append(folder_name)
                 result[package_name]["readmeMd"].append(input_readme)
 
-            # Generate some necessary file for new service
-            init_new_service(package_name, folder_name)
-
             # Update metadata
             try:
                 update_servicemetadata(sdk_folder, data, config, folder_name, package_name, spec_folder, input_readme)
             except Exception as e:
                 _LOGGER.info(str(e))
+                continue
 
             # Setup package locally
-            check_call(
-                f"pip install --ignore-requires-python -e {str(Path(sdk_folder, folder_name, package_name))}",
-                shell=True,
-            )
+            try:
+                check_call(
+                    f"pip install --ignore-requires-python -e {str(Path(sdk_folder, folder_name, package_name))}",
+                    shell=True,
+                )
+            except Exception as e:
+                _LOGGER.info(str(e))
 
     # remove duplicates
     for value in result.values():
