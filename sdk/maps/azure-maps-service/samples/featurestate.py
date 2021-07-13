@@ -26,7 +26,7 @@ with open("resources/featurestate_sample_create.json", "r") as file:
     print(result)
     stateset_id = result.stateset_id
 feature_id = "SPC4709"
-state_key_names = "keyName1"
+state_key_name = "keyName1"
 try:
     result = client.feature_state.list_stateset()
     print("List statesets:")

@@ -6,7 +6,8 @@ import argparse
 import os
 import re
 
-from azure.core.credentials import AzureKeyCredential, HttpResponseError
+from azure.core.credentials import AzureKeyCredential
+from azure.core.exceptions import HttpResponseError
 from common.common import AzureKeyInQueryCredentialPolicy
 from azure.maps.creator import CreatorClient
 
